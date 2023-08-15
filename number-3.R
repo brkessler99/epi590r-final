@@ -1,2 +1,1 @@
-x <- rnorm(10,10,5)
-print(x)[3]
+bigmac <- rio::import(here::here("data","raw","big-mac-2022-07-01.xls"))
