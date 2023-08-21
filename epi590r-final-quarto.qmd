@@ -1,0 +1,123 @@
+---
+title: "2022 BigMac Index Data Analysis Using EPI 590R Methods"
+format: html
+editor: visual
+---
+
+## Introduction
+
+```{r}
+#| echo: false
+#| message: false
+pacman::p_load(tidyverse,
+               gtsummary,
+               patchwork,
+               renv)
+
+#big mac data from https://github.com/TheEconomist/big-mac-data 
+
+bigmac <- rio::import(here::here("data","raw","big-mac-2022-07-01.xls")) %>% janitor::clean_names()
+
+#region data from https://ourworldindata.org/world-region-map-definitions
+
+regions <- rio::import(here::here("data","raw","world-regions-sdg-united-nations.csv")) %>% 
+  janitor::clean_names() %>% 
+  select(code,world_regions_according_to_the_united_nations) %>% 
+  rename("iso_a3"="code","region"="world_regions_according_to_the_united_nations")
+bigmac2 <- left_join(bigmac,regions) %>% drop_na()
+```
+
+These data are from the 2022 BigMac Index, a metric created by The Economist in 1986 to estimate purchasing power parity (PPP). This economic measure is used to test currency exchange rates by seeing how the price of specific goods differ by country. The BigMac Index simply compares the cost of a McDonald's BigMac in different countries to estimate the PPP and GDP of different countries' currencies. The provided data set (<https://github.com/TheEconomist/big-mac-data>) includes 54 countries. UN world region data (<https://ourworldindata.org/world-region-map-definitions>) was available for 52 countries. Therefore, the final data set included the currency, the local price of a BigMac, the dollar exhcange rate for the given currency, the dollar PPP, the estimated BigMac GDP, raw and adjusted valuations for five currencies, and world region for 52 countries.
+
+## Summary Statistics
+
+@table1 displays median local price, dollar price, USD PPP, BigMac GDP, and dollar valuation values with IQR for each UN world region.
+
+```{r}
+#| echo: false
+table1 <- tbl_summary(bigmac2,
+            by=region,
+            include=c(local_price, dollar_price, dollar_ppp, gdp_bigmac, dollar_valuation),
+            label=list(local_price ~ "Local Price",
+                       dollar_price ~ "Dollar Price",
+                       dollar_ppp ~ "USD PPP",
+                       gdp_bigmac ~ "BigMac GDP",
+                       dollar_valuation ~ "Dollar Valuation")) %>% 
+  add_overall(col_label = "**Total**")
+table1
+```
+
+The overall median local price for a BigMac was `r inline_text(table1, variable="local_price",column="stat_0")`, the overall median price in dollars was `r inline_text(table1, variable="dollar_price",column="stat_0")`, the overall median PPP in USD was `r inline_text(table1, variable="dollar_ppp",column="stat_0")`, the overall median BigMac GDP in USD was `r inline_text(table1, variable="gdp_bigmac",column="stat_0")`, and the overall median dollar valuation for the global currencies was `r inline_text(table1, variable="dollar_valuation",column="stat_0")`. Central and Southern Asia had the largest PPP (`r inline_text(table1, variable="dollar_ppp",column="Central and Southern Asia")`) but the lowest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Central and Southern Asia")`). Oceania had the smallest PPP (`r inline_text(table1, variable="dollar_ppp",column="Oceania")`) but the largest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Oceania")`.
+
+The overall mean BigMac GDP was `r mean(bigmac2$gdp_bigmac)`. Because the mean BigMac GDP is greater than the median value, it can be assumed that the distribution is right skewed.
+
+## Regression Model
+
+A multivariate linear regression model was fitted to estimate how local BigMac price and the dollar exchange rate of a currency influence a country's estimated BigMac GDP (@table2).
+
+```{r}
+#| echo: false
+model <- lm(gdp_bigmac ~ local_price + dollar_ex, data=bigmac2)
+table2 <- tbl_regression(model,
+               intercept = TRUE,
+               label = list(
+    
+```
+
+```{r}
+
+```
+
+```{local_price ~ "Local Price",}
+                 dollar_ex ~ "Dollar Exchange Rate"
+               ))
+table2
+```
+
+Neither local price (`r inline_text(table2, variable="local_price")`) nor dollar exchange rate (`r inline_text(table2, variable="dollar_ex")`) were significant predictors of BigMac GDP when controlling for the other.
+
+## Dollar Exchange Rate and Big Mac GDP Scatter Plot
+
+The following figures show the spread of countries' BigMac local price (red) and dollar exchange rate (blue) by the estimated BigMac GDP. Local price, dollar exchange rate, and BigMac GDP were log transformed because of skewed data.
+
+```{r}
+#| echo: false
+price_graph <- bigmac2 %>% ggplot(aes(x=log(local_price),y=log(gdp_bigmac))) + 
+  geom_point(color="red") +
+  labs(x="log(Local Price)",y="log(BigMac GDP)")
+dollar_graph <- bigmac2 %>% ggplot(aes(x=log(dollar_ex),y=log(gdp_bigmac))) + 
+  geom_point(color="blue") +
+  labs(x="log(Dollar Exchange Rate)",y="log(BigMac GDP)")
+price_graph + dollar_graph
+```
+
+A negative trend exists for local price of a BigMac and BigMac GDP as well as for a currency's dollar exchange rate and BigMac GDP.
+
+## Function
+
+The function geo_mean calculates the geometric mean of local prices for BigMacs for a given set of ISO A3 country codes.
+
+```{r}
+#input iso_a3 for geometric mean of local prices
+geo_mean <- function(x) {
+  df <- data.frame(matrix(nrow=length(x),ncol=2))
+  colnames(df) <- c("position","local_price")
+  for (i in 1:length(x)) {
+    df[i,1] <- which(bigmac2$iso_a3 == x[i])
+    df[i,2] <- bigmac2$local_price[df[i,1]]
+  }
+  n <- length(x)
+  geo_mean <- (prod(df$local_price))^(1/n)
+  return(geo_mean)
+}
+
+#test geo_mean
+geo_mean(x=c("VNM","URY","AUS","THA","KWT"))
+```
+
+```{r}
+#| echo: false
+#renv procedure
+renv::init()
+renv::snapshot()
+```
