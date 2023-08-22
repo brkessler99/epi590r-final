@@ -31,10 +31,12 @@ These data are from the 2022 BigMac Index, a metric created by The Economist in 
 
 ## Summary Statistics
 
-@table1 displays median local price, dollar price, USD PPP, BigMac GDP, and dollar valuation values with IQR for each UN world region.
+Median local price, dollar price, USD PPP, BigMac GDP, and dollar valuation values with IQR for each UN world region were determined.
 
 ```{r}
 #| echo: false
+#| label: tbl-1
+#| tbl-cap: "Summary statistics for the 2022 BigMac Index data."
 table1 <- tbl_summary(bigmac2,
             by=region,
             include=c(local_price, dollar_price, dollar_ppp, gdp_bigmac, dollar_valuation),
@@ -47,41 +49,38 @@ table1 <- tbl_summary(bigmac2,
 table1
 ```
 
-The overall median local price for a BigMac was `r inline_text(table1, variable="local_price",column="stat_0")`, the overall median price in dollars was `r inline_text(table1, variable="dollar_price",column="stat_0")`, the overall median PPP in USD was `r inline_text(table1, variable="dollar_ppp",column="stat_0")`, the overall median BigMac GDP in USD was `r inline_text(table1, variable="gdp_bigmac",column="stat_0")`, and the overall median dollar valuation for the global currencies was `r inline_text(table1, variable="dollar_valuation",column="stat_0")`. Central and Southern Asia had the largest PPP (`r inline_text(table1, variable="dollar_ppp",column="Central and Southern Asia")`) but the lowest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Central and Southern Asia")`). Oceania had the smallest PPP (`r inline_text(table1, variable="dollar_ppp",column="Oceania")`) but the largest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Oceania")`.
+@tbl-1 displays that the overall median local price for a BigMac was `r inline_text(table1, variable="local_price",column="stat_0")`, the overall median price in dollars was `r inline_text(table1, variable="dollar_price",column="stat_0")`, the overall median PPP in USD was `r inline_text(table1, variable="dollar_ppp",column="stat_0")`, the overall median BigMac GDP in USD was `r inline_text(table1, variable="gdp_bigmac",column="stat_0")`, and the overall median dollar valuation for the global currencies was `r inline_text(table1, variable="dollar_valuation",column="stat_0")`. Central and Southern Asia had the largest PPP (`r inline_text(table1, variable="dollar_ppp",column="Central and Southern Asia")`) but the lowest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Central and Southern Asia")`). Oceania had the smallest PPP (`r inline_text(table1, variable="dollar_ppp",column="Oceania")`) but the largest BigMac GDP (`r inline_text(table1, variable="gdp_bigmac",column="Oceania")`.
 
 The overall mean BigMac GDP was `r mean(bigmac2$gdp_bigmac)`. Because the mean BigMac GDP is greater than the median value, it can be assumed that the distribution is right skewed.
 
 ## Regression Model
 
-A multivariate linear regression model was fitted to estimate how local BigMac price and the dollar exchange rate of a currency influence a country's estimated BigMac GDP (@table2).
+A multivariate linear regression model was fitted to estimate how local BigMac price and the dollar exchange rate of a currency influence a country's estimated BigMac GDP.
 
 ```{r}
 #| echo: false
+#| label: tbl-2
+#| tbl-cap: "Multivariate linear regression model."
 model <- lm(gdp_bigmac ~ local_price + dollar_ex, data=bigmac2)
 table2 <- tbl_regression(model,
                intercept = TRUE,
                label = list(
-    
-```
-
-```{r}
-
-```
-
-```{local_price ~ "Local Price",}
+                 local_price ~ "Local Price",
                  dollar_ex ~ "Dollar Exchange Rate"
                ))
 table2
 ```
 
-Neither local price (`r inline_text(table2, variable="local_price")`) nor dollar exchange rate (`r inline_text(table2, variable="dollar_ex")`) were significant predictors of BigMac GDP when controlling for the other.
+@tbl-2 shows that neither local price (`r inline_text(table2, variable="local_price")`) nor dollar exchange rate (`r inline_text(table2, variable="dollar_ex")`) were significant predictors of BigMac GDP when controlling for the other.  It can be hypothesized that local price, dollar exchange rate, and BigMac GDP are not linearly related.
 
 ## Dollar Exchange Rate and Big Mac GDP Scatter Plot
 
-The following figures show the spread of countries' BigMac local price (red) and dollar exchange rate (blue) by the estimated BigMac GDP. Local price, dollar exchange rate, and BigMac GDP were log transformed because of skewed data.
+The following figures show the spread of countries' BigMac local prices (red) and dollar exchange rates (blue) by the estimated BigMac GDP. Local price, dollar exchange rate, and BigMac GDP were log transformed because of skewed data.
 
 ```{r}
 #| echo: false
+#| label: fig-1
+#| fig-cap: "Scatter plots of log-transformed local price and dollar exchange rate by log transformed BigMac GDP."
 price_graph <- bigmac2 %>% ggplot(aes(x=log(local_price),y=log(gdp_bigmac))) + 
   geom_point(color="red") +
   labs(x="log(Local Price)",y="log(BigMac GDP)")
@@ -91,7 +90,7 @@ dollar_graph <- bigmac2 %>% ggplot(aes(x=log(dollar_ex),y=log(gdp_bigmac))) +
 price_graph + dollar_graph
 ```
 
-A negative trend exists for local price of a BigMac and BigMac GDP as well as for a currency's dollar exchange rate and BigMac GDP.
+@fig-1 shows that a negative trend exists for local price of a BigMac and BigMac GDP as well as for a currency's dollar exchange rate and BigMac GDP.
 
 ## Function
 
@@ -117,6 +116,8 @@ geo_mean(x=c("VNM","URY","AUS","THA","KWT"))
 
 ```{r}
 #| echo: false
+#| message: false
+#| warning: false
 #renv procedure
 renv::init()
 renv::snapshot()
